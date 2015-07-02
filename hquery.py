@@ -20,6 +20,7 @@
 import os
 import wx
 import webbrowser
+from bin import drugPharmAssoc
 
 try:
     import requests
