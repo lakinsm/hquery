@@ -2,6 +2,8 @@
 #
 # Name:     hquery.pyw
 # Purpose:  Query a list of genes against the HUGO database, return tab file
+#           Other features include an interface to the NLM Pharmocologic index
+#           See documentation for details
 #
 # Author:   Steven Lakin (Steven.Lakin@colostate.edu or lakinsm@miamioh.edu)
 #

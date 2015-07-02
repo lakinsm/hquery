@@ -5,17 +5,13 @@ import csv
 import glob
 import os
 import urllib
-import re
-from itertools import izip_longest
 
 def getPharmData(outfile):
     urllib.urlretrieve("ftp://public.nlm.nih.gov/nlmdata/.dailymed/pharmacologic_class_indexing_spl_files.zip", outfile)
     
 def extractPharmData(filePath):
     bin_dir = path.dirname(__file__).replace('\\','/')+'/'
-    print(bin_dir)
     os.system(r'c:\cygwin64\bin\bash --login -c '+bin_dir+r'getPharmData.sh')
-
 
 def writeToCSV(files, outfilePath):
     with open(outfilePath, 'wb') as outfile:
@@ -36,18 +32,17 @@ def writeToCSV(files, outfilePath):
                     if 'displayName' in ldata[x].attributes.keys():
                         values.append(ldata[x].attributes['displayName'].value)
                 for value in values:
-                    writer.writerow({'Drug Name': name, 'Pharm Class': value, 'Version': version})
+                    writer.writerow({'Substance Name': name, 'Pharm Class': value, 'Version': version})
                     
 def pharmDiff(oldfile, newfile, outfile):
-    with open(oldfile, 'rb') as old:
-        with open(newfile, 'rb') as new:
-            with open(outfile, 'wb') as out:
-                for lineOld, lineNew in izip_longest(old, new):
-                    breaksOld = [m.start() for m in re.finditer(',', lineOld)]
-                    nameOld = lineOld[0:breaksOld[1]]
-                    versionOld = lineOld[breaksOld[1]+1]
-                    breaksNew = [m.start() for m in re.finditer(',', lineNew)]
-                    nameNew = lineNew[0:breaksNew[1]]
-                    versionNew = lineNew[breaksNew[1]+1]
-                    if (nameOld == nameNew) and (versionOld != versionNew):
-                        out.write(lineNew)
+    with open(oldfile, 'rb') as old, open(newfile, 'rb') as new, open(outfile, 'wb') as out:
+        a = set(old)
+        b = set(new)
+        outdata = (a-b, b-a)
+        out.write('Substance Name,Pharm Class,Version\r\n')
+        out.write('\r\nEntries in Old File but not in New File:,,\r\n')
+        for line in outdata[0]:
+            out.write(line)
+        out.write('\r\nEntries in New File but not in Old File:,,\r\n')
+        for line in outdata[1]:
+            out.write(line)
