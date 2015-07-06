@@ -5,13 +5,23 @@ import csv
 import glob
 import os
 import urllib
+import sys
+import tempfile
 
 def getPharmData(outfile):
     urllib.urlretrieve("ftp://public.nlm.nih.gov/nlmdata/.dailymed/pharmacologic_class_indexing_spl_files.zip", outfile)
     
 def extractPharmData(filePath):
-    bin_dir = path.dirname(__file__).replace('\\','/')+'/'
-    os.system(r'c:\cygwin64\bin\bash --login -c '+bin_dir+r'getPharmData.sh')
+    unixpath = filePath.replace('\\','/')
+    nozip = unixpath.split('.')[0]
+    with tempfile.NamedTemporaryFile() as temp:
+        temp.write(r"#!/usr/bin/bash"+"\n"+"unzip "+unixpath+" -d "+nozip+";\n"+"unzip "+nozip+r"/\* -d "+nozip+";\n"+"rm "+nozip+r"/*.zip")
+        temp.flush()
+        bin_dir = temp.name.replace('\\','/')
+        if os.path.isdir(r"c:\cygwin64") == True:
+            os.system(r'c:\cygwin64\bin\bash --login -c '+bin_dir)
+        elif os.path.isdir(r"C:\cygwin") == True:
+            os.system(r'c:\cygwin\bin\bash --login -c '+bin_dir)
 
 def writeToCSV(files, outfilePath):
     with open(outfilePath, 'wb') as outfile:
@@ -36,13 +46,24 @@ def writeToCSV(files, outfilePath):
                     
 def pharmDiff(oldfile, newfile, outfile):
     with open(oldfile, 'rb') as old, open(newfile, 'rb') as new, open(outfile, 'wb') as out:
+        newfilename = ''
+        oldfilename = ''
+        if sys.platform.startswith('win32'):
+            newfilename = newfile.split('\\')[-1]
+            oldfilename = oldfile.split('\\')[-1]
+        elif sys.platform.startswith('linux'):
+            newfilename = newfile.split('/')[-1]
+            oldfilename = oldfile.split('/')[-1]
+        elif sys.platform.startswith('darwin'):
+            newfilename = newfile.split('/')[-1]
+            oldfilename = oldfile.split('/')[-1]
         a = set(old)
         b = set(new)
         outdata = (a-b, b-a)
         out.write('Substance Name,Pharm Class,Version\r\n')
-        out.write('\r\nEntries in Old File but not in New File:,,\r\n')
+        out.write('\r\nEntries in '+str(oldfilename)+' but not in '+str(newfilename)+':,,\r\n')
         for line in outdata[0]:
             out.write(line)
-        out.write('\r\nEntries in New File but not in Old File:,,\r\n')
+        out.write('\r\nEntries in '+str(newfilename)+' but not in '+str(oldfilename)+':,,\r\n')
         for line in outdata[1]:
             out.write(line)
