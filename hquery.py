@@ -25,12 +25,74 @@ from bin import drugPharmAssoc
 
 try:
     import requests
+    from openpyxl import *
 except ImportError:
     print('Please install the requests package: pip install requests')
+    print('Please install the openpyxl package: pip install openpyxl')
     raise
 
-## Dictionary parser for requests.json() object, outputs data into
-## batch upload format for the NCI Apellon Ontylog program extension
+## Main method for parsing the RED input report and querying the HGNC database.
+## It must be formatted exactly as detailed in the documentation. This method
+## will call all subsequent methods that are necessary for the query process.
+def mainQuery(inputReport, outputPath):
+    dirPath = '\\'.join(outputPath.split('\\')[0:-1])+"\\"
+    
+    # Get Excel workbook data location on memory (this does not immediately utilize resources)
+    wb = load_workbook(inputReport, read_only = True)
+    ws = wb[wb.get_sheet_names()[0]] # The input data must be in the first sheet
+    
+    # Initialize temporary output array to store output values for each row in report
+    iterList = [None for x in range(18)]
+    
+    with open(outputPath, 'wb') as outfile, open(dirPath+'FailedQueryLog.txt', 'w') as errorfile:
+        
+        # Iterate over the input report, skipping the header line, put values
+        # from the report into the output array if known, append variable length
+        # fields (e.g. synonym fields)
+        count = 0
+        for row in ws.rows:
+            if count == 0:
+                count += 1
+                continue
+            else:
+                iterList[0] = row[0].value
+                iterList[1] = row[1].value
+                iterList[2] = row[2].value
+                iterList[3] = row[3].value
+                iterList[4] = row[4].value
+                iterList[5] = row[5].value
+                for cell in row[5:len(row)]:
+                    iterList.append(cell.value)
+            
+            # Initialize the symbol to be queried, if it is not found in the
+            # main symbol field, use the first synonym.  Fetch the data from HGNC.
+            if row[2].value != "Not Provided" or row[2].value != "NULL":
+                symbol = row[2].value
+            elif row[6].value != "Not Provided" or row[6].value != "NULL":
+                symbol = row[6].value
+            elif len(row[7].value) < 12:
+                symbol = row[7].value 
+            data = queryFetch(symbol)
+            
+            # Check error status and if error, output to errorfile.  If valid
+            # reponse, retrieve the data as a nested dictionary.
+            if data.status_code != 200:
+                errorfile.write(data.url.split('/')[-1]+' symbol returned error code: '+data.status_code+', reason = '+data.reason+'\n')
+            elif data.status_code == 200:
+                content = data.json()['response']['docs'][0]
+                ## myst
+            
+            
+                
+## Query HGNC database with gene symbol
+def queryFetch(symbol):
+    prefix = 'http://rest.genenames.org/fetch/symbol/'
+    headers = {'Accept': 'application/json'}
+    r = requests.get(prefix+symbol, headers=headers)
+    return(r)
+
+## Dictionary parser for requests.json() object, returns data in a list 
+## of strings
 def dumpClean(obj, outfile):
     if type(obj) == dict:
         for k, v in obj.items():
@@ -103,34 +165,36 @@ class MainWindow(wx.Frame):
         
         
         # File menu options
+        # The following selections belong to the Gene Query menu:
         menuOpen = querymenu.Append(wx.ID_OPEN, "&Load Query List", " Load a gene batch file for query")
         menuGit = querymenu.Append(wx.ID_ANY, "&Help", " See documentation for help with gene query")
-        #menuExit = querymenu.Append(wx.ID_EXIT, "&Exit", " Terminate the Program")
         
+        # The following selections belong to the Help menu:
         menuAbout = helpmenu.Append(wx.ID_ABOUT, "&About", " Information about hquery")
         menuGit2 = helpmenu.Append(wx.ID_ANY, "&Help", " See documentation for help with hquery features")
         
+        # The following selections belong to the Pharm Data menu:
         menuGetPharm = pharmmenu.Append(wx.ID_ANY, "&Get Pharm Data", " Pull Pharmocologic index data into the specified directory")
         menuPharmDiff = pharmmenu.Append(wx.ID_ANY, "&Pharm Diff", " Differentials between old and new index data")
         
+        # Place selections into their categories and initialize the menu bar
         menuBar = wx.MenuBar()
         menuBar.Append(querymenu, "&Gene Query")
         menuBar.Append(pharmmenu, "&Pharm Data")
         menuBar.Append(helpmenu, "&Help")
         self.SetMenuBar(menuBar)
         
-        # File menu events
+        # File menu events: the second parameter is the function call, the third
+        # parameter is to which menu selection it belongs
         self.Bind(wx.EVT_MENU, self.OnOpen, menuOpen)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
-        #self.Bind(wx.EVT_MENU, self.OnExit, menuExit)
         self.Bind(wx.EVT_MENU, self.OnGit, menuGit)
         self.Bind(wx.EVT_MENU, self.OnGit, menuGit2)
         self.Bind(wx.EVT_MENU, self.OnGetPharm, menuGetPharm)
         self.Bind(wx.EVT_MENU, self.OnPharmDiff, menuPharmDiff)
-        
         self.Show(True)
         
-    ## Method for loading files
+    ## Method for loading gene query files
     def OnOpen(self, e):
         self.dirname = ''
         dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.*", wx.OPEN)
@@ -162,6 +226,8 @@ class MainWindow(wx.Frame):
         dlg.ShowModal()
         dlg.Destroy()
         
+    ## Method for downloading new pharmocologic index spl data from the NLM
+    ## ftp server.  Includes an optional call to Cygwin to extract the data.
     def OnGetPharm(self, e):
         self.downdir = ''
         dlg = wx.DirDialog(self, "Choose a directory", "", wx.DD_DIR_MUST_EXIST)
@@ -189,9 +255,9 @@ class MainWindow(wx.Frame):
         dlg3.Destroy()
         dlg4.Destroy()
 
-        
-            
-    
+    ## Method for selecting two files and comparing them for differential
+    ## entries.  The method used is the equivalent of symmetric difference
+    ## in set theory.  See the python documentation on sets for more information.
     def OnPharmDiff(self, e):
         self.dirname = ''
         self.filelist = []
@@ -204,11 +270,6 @@ class MainWindow(wx.Frame):
                 if dlg2.ShowModal() == wx.ID_YES:
                     drugPharmAssoc.pharmDiff(self.filelist[0], self.filelist[1], str(self.dirname)+r"\pharmDiffResults.csv")
         dlg.Destroy()
-        
-    
-    ## Method for exiting
-    #def OnExit(self, e):
-        #self.Close(True)
         
 ### Main ###
 #app = wx.App(True, filename=r'C:\Users\lakinsm\Documents\PosterNIH\Term\HUGOQueryModule\errorlog.txt')

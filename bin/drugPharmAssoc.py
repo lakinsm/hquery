@@ -1,3 +1,24 @@
+#-------------------------------------------------------------------------------
+#
+# Name:     bin/drugpharmassoc.py
+# Module:   drugPharmAssoc
+# Purpose:  This is a native module for the hquery wxPython GUI. This module
+#           provides functionality for interfacing with the NLM
+#           pharmocologic spl index files on the NLM ftp server.  It also
+#           allows for fast differential comparison of old data to new data.
+#
+# Author:   Steven Lakin (Steven.Lakin@colostate.edu or lakinsm@miamioh.edu)
+#
+# Created:  June 29th, 2015
+# Copyright: National Institutes of Health BTRIS
+#
+# Documentation: https://github.com/lakinsm/hquery
+#
+#-------------------------------------------------------------------------------
+
+# Note: this module requires Python 3
+# This is a wxPython GUI
+
 from xml.dom.minidom import parse
 from os import path
 import xml.dom.minidom
@@ -8,9 +29,15 @@ import urllib
 import sys
 import tempfile
 
+## This method pulls the pharmocologic index files from the NLM ftp.  Change
+## this method if the URL for the file download changes.  To do this, simply
+## replace the URL below with the new URL.  It must be exact.
 def getPharmData(outfile):
     urllib.urlretrieve("ftp://public.nlm.nih.gov/nlmdata/.dailymed/pharmacologic_class_indexing_spl_files.zip", outfile)
-    
+
+## This method extracts the downloaded data from the getPharmData method.
+## Files are extracted to the same location with the same file name (minus
+## the zip extension).
 def extractPharmData(filePath):
     unixpath = filePath.replace('\\','/')
     nozip = unixpath.split('.')[0]
@@ -23,6 +50,11 @@ def extractPharmData(filePath):
         elif os.path.isdir(r"C:\cygwin") == True:
             os.system(r'c:\cygwin\bin\bash --login -c '+bin_dir)
 
+## This method generates a comma-delimited (csv) file that contains the
+## substance name, substance class, and the version number from the NLM
+## pharmocologic index files.  It will only work on the xml formatted files from
+## the NLM ftp downloaded in the getPharmData output.  Input to this method is
+## the directory path of the xml files and the desired output path for the csv.
 def writeToCSV(files, outfilePath):
     with open(outfilePath, 'wb') as outfile:
         fieldnames = ['Drug Name', 'Pharm Class', 'Version']
@@ -44,6 +76,8 @@ def writeToCSV(files, outfilePath):
                 for value in values:
                     writer.writerow({'Substance Name': name, 'Pharm Class': value, 'Version': version})
                     
+ ## This method accepts two comma delimited files as input and compares them.
+ ## It will only work for the file format output by the writeToCSV function.
 def pharmDiff(oldfile, newfile, outfile):
     with open(oldfile, 'rb') as old, open(newfile, 'rb') as new, open(outfile, 'wb') as out:
         newfilename = ''
