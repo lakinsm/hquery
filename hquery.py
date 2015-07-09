@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 #
 # Name:     hquery.pyw
-# Purpose:  Query a list of genes against the HUGO database, return tab file
+# Purpose:  Query a list of genes against the HGNC database, return tab file
 #           Other features include an interface to the NLM Pharmocologic index
 #           See documentation for details
 #
@@ -41,37 +41,49 @@ def mainQuery(inputReport, outputPath):
     wb = load_workbook(inputReport, read_only = True)
     ws = wb[wb.get_sheet_names()[0]] # The input data must be in the first sheet
     
-    # Initialize temporary output array to store output values for each row in report
-    iterList = [None for x in range(18)]
-    
     with open(outputPath, 'wb') as outfile, open(dirPath+'FailedQueryLog.txt', 'w') as errorfile:
+        # Initialize headers for outfile
+        outfile.write(
+        'Concept_Name\tConcept_ID\tGene_Nomenclature_Symbol\tGene_Chromosome_Location#1\tGene_Chromosome_Location#2\t'
+        'Gene_Mapping_Location\tGene_Approved_Symbol_HGNC\tGene_Approved_Name_HGNC\tChromosome_Location_HGNC\tGene_Symbol_Synonyms_HGNC\t'
+        'Gene_Prev_Symbol_Synonyms_HGNC\tGene_Name_Synonyms_HGNC\tGene_Family_IDs_HGNC\tGene_Family_Names_HGNC\t'
+        'Gene_Locus_Group_HGNC\tGene_Locus_Type_HGNC\tEnzyme_ID_HGNC\tPubmed_IDs_HGNC\t'
+        )
+        
+        # Fill in the remaining dynamic headers
+        for x in range([len(row) for row in ws.rows][0]-6):
+            outfile.write('Full_Synonym#'+str(x+1)+'\t')
+        outfile.write('\n')
         
         # Iterate over the input report, skipping the header line, put values
         # from the report into the output array if known, append variable length
         # fields (e.g. synonym fields)
         count = 0
         for row in ws.rows:
+            # Initialize temporary output array to store output values for each row in report
+            iterList = ['' for x in range(18)]
             if count == 0:
                 count += 1
                 continue
             else:
-                iterList[0] = row[0].value
-                iterList[1] = row[1].value
-                iterList[2] = row[2].value
-                iterList[3] = row[3].value
-                iterList[4] = row[4].value
-                iterList[5] = row[5].value
-                for cell in row[5:len(row)]:
+                iterList[0] = row[0].value #Concept name
+                iterList[1] = row[1].value #Concept ID
+                iterList[2] = row[2].value #Gene nomenclature symbol
+                iterList[3] = row[3].value #Gene chromosome location 1
+                iterList[4] = row[4].value #Gene chromosome location 2
+                iterList[5] = row[5].value #Gene mapping location
+                for cell in row[6:len(row)]: #All synonym fields appended
                     iterList.append(cell.value)
+                    
             
             # Initialize the symbol to be queried, if it is not found in the
             # main symbol field, use the first synonym.  Fetch the data from HGNC.
             if row[2].value != "Not Provided" or row[2].value != "NULL":
-                symbol = row[2].value
+                symbol = row[2].value #Use main symbol field from RED
             elif row[6].value != "Not Provided" or row[6].value != "NULL":
-                symbol = row[6].value
+                symbol = row[6].value #Use first synonym from RED
             elif len(row[7].value) < 12:
-                symbol = row[7].value 
+                symbol = row[7].value #Use second synonym from RED
             data = queryFetch(symbol)
             
             # Check error status and if error, output to errorfile.  If valid
@@ -79,8 +91,41 @@ def mainQuery(inputReport, outputPath):
             if data.status_code != 200:
                 errorfile.write(data.url.split('/')[-1]+' symbol returned error code: '+data.status_code+', reason = '+data.reason+'\n')
             elif data.status_code == 200:
+                if data.json()['response']['numFound'] == 0:
+                    errorfile.write(data.url.split('/')[-1]+' symbol returned no records\n')
+                    continue # Next row of data from input report
+                    
+                # Place retrieved data into iterList
                 content = data.json()['response']['docs'][0]
-                ## myst
+                if 'symbol' in content.keys():
+                    iterList[6] = content['symbol']
+                if 'name' in content.keys():
+                    iterList[7] = content['name']
+                if 'location' in content.keys():
+                    iterList[8] = content['location']
+                if 'alias_symbol' in content.keys():
+                    iterList[9] = ';'.join(str(x) for x in content['alias_symbol'])
+                if 'prev_symbol' in content.keys():
+                    iterList[10] = ';'.join(str(x) for x in content['prev_symbol'])
+                if 'alias_name' in content.keys():
+                    iterList[11] = ';'.join(str(x) for x in content['alias_name'])
+                if 'gene_family_id' in content.keys():
+                    iterList[12] = ';'.join(str(x) for x in content['gene_family_id'])
+                if 'gene_family' in content.keys():
+                    iterList[13] = ';'.join(str(x) for x in content['gene_family'])
+                if 'locus_group' in content.keys():
+                    iterList[14] = content['locus_group']
+                if 'locus_type' in content.keys():
+                    iterList[15] = content['locus_type']
+                if 'enzyme_id' in content.keys():
+                    iterList[16] = ';'.join(str(x) for x in content['enzyme_id'])
+                if 'pubmed_id' in content.keys():
+                    iterList[17] = ';'.join(str(x) for x in content['pubmed_id'])
+                for index in range(len(iterList)):
+                    if iterList[index] == None:
+                        iterList[index] = ''
+                outfile.write('\t'.join(iterList)+'\n')
+                del iterList
             
             
                 
@@ -90,29 +135,6 @@ def queryFetch(symbol):
     headers = {'Accept': 'application/json'}
     r = requests.get(prefix+symbol, headers=headers)
     return(r)
-
-## Dictionary parser for requests.json() object, returns data in a list 
-## of strings
-def dumpClean(obj, outfile):
-    if type(obj) == dict:
-        for k, v in obj.items():
-            if hasattr(v, '__iter__'):
-                outfile.write(str(k)+"\n")
-                dumpClean(v, outfile)
-            else:
-                outfile.write('%s : %s' % (k, v)+"\n")
-    elif type(obj) == list:
-        for v in obj:
-            if hasattr(v, '__iter__'):
-                dumpClean(v, outfile)
-            else:
-                outfile.write("\t"+str(v)+"\n")
-    else:
-        outfile.write(+str(obj)+"\n")
-
-## Ensure gene symbol or term is in a valid format
-def validateGene(geneKey):
-    temp = ''
 
 ## Use the requests package to query the HUGO gene database for each gene
 ## symbol.  This method has built-in gene symbol validation and calls back
