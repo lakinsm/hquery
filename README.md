@@ -17,14 +17,14 @@ the program, ensure that you have the necessary dependencies installed.  You
 will need the following to be installed on your machine:
 
 - [Python 3.x.x](https://www.python.org/downloads/)
---* [Requests Python package](http://docs.python-requests.org/en/latest/user/install/#install)
---* [openpyxl Python package](https://openpyxl.readthedocs.org/en/latest/#Installation)
+  * [Requests Python package](http://docs.python-requests.org/en/latest/user/install/#install)
+  * [openpyxl Python package](https://openpyxl.readthedocs.org/en/latest/#Installation)
 - [R Language for Statistical Computing (pivot feature only)](http://cran.r-project.org/mirrors.html)
 - The R packages (pivot feature only [Lyuba will need this for the pivot]):
 -- xlsx
---* dplyr
---* tidyr
---* openxlsx
+  * dplyr
+  * tidyr
+  * openxlsx
 - (Optional) [Cygwin](http://cygwin.com/install.html)
 
 Which can be obtained using the following line of code in the R terminal:
