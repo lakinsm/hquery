@@ -1,4 +1,5 @@
 pivotReport <- function(inputReport, outputReport){
+    library(xlsx)
     library(dplyr)
     library(tidyr)
     library(openxlsx)

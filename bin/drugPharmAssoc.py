@@ -17,7 +17,6 @@
 #-------------------------------------------------------------------------------
 
 # Note: this module requires Python 3
-# This is a wxPython GUI
 
 from xml.dom.minidom import parse
 from os import path
