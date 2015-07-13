@@ -17,15 +17,15 @@ the program, ensure that you have the necessary dependencies installed.  You
 will need the following to be installed on your machine:
 
 + [Python 3.x.x](https://www.python.org/downloads/)
-++ [Requests Python package](http://docs.python-requests.org/en/latest/user/install/#install)
-++ [openpyxl Python package](https://openpyxl.readthedocs.org/en/latest/#Installation)
+++* [Requests Python package](http://docs.python-requests.org/en/latest/user/install/#install)
+++* [openpyxl Python package](https://openpyxl.readthedocs.org/en/latest/#Installation)
 + [R Language for Statistical Computing (pivot feature only)](http://cran.r-project.org/mirrors.html)
 + The R packages (pivot feature only [Lyuba will need this for the pivot]):
-++ xlsx
-++ dplyr
-++ tidyr
-++ openxlsx
-+(Optional) [Cygwin](http://cygwin.com/install.html)
+++* xlsx
+++* dplyr
+++* tidyr
+++* openxlsx
++ (Optional) [Cygwin](http://cygwin.com/install.html)
 
 Which can be obtained using the following line of code in the R terminal:
 
@@ -42,12 +42,12 @@ following way.  It should be an *Excel file (.xlsx extension)* containing
 exactly the following columns in the following order, which you can see in the
 example file "ExampleUnpivotedInputFile.xlsx" provided above:
 
-+Concept_Name [Column A]
-+Concept_Code [Column B]
-+Gene_Nomenclature_Symbol [Column C]
-+Gene_Chromosome_Location [Column D]
-+Gene_Map_Location [Column E]
-+Full_Synonym [Column F]
++ Concept_Name [Column A]
++ Concept_Code [Column B]
++ Gene_Nomenclature_Symbol [Column C]
++ Gene_Chromosome_Location [Column D]
++ Gene_Map_Location [Column E]
++ Full_Synonym [Column F]
 
 The file will be processed in R, which may take some time (up to 5 minutes
 for very large reports (> 200,000 rows)).  The file will be pivoted first by
@@ -64,16 +64,16 @@ as an *Excel file (.xlsx extension)* exactly as detailed in the
 "ExampleGeneQueryFormat.xlsx" file provided above.  It should have the following
 columns in exactly this order:
 
-+Concept_Name [Column A]
-+Concept_Code [Column B]
-+Gene_Nomenclature_Symbol [Column C]
-+Gene_Chromosome_Location#1 [Column D]
-+Gene_Chromosome_Location#2 [Column E]
-+Gene_Map_Location [Column F]
-+Full_Synonym#1 [Column G]
-+Full_Synonym#2 [Column H]
++ Concept_Name [Column A]
++ Concept_Code [Column B]
++ Gene_Nomenclature_Symbol [Column C]
++ Gene_Chromosome_Location#1 [Column D]
++ Gene_Chromosome_Location#2 [Column E]
++ Gene_Map_Location [Column F]
++ Full_Synonym#1 [Column G]
++ Full_Synonym#2 [Column H]
 ....
-+Full_Synonym#NNN [Column NNN]
++ Full_Synonym#NNN [Column NNN]
 
 The number of "Full_Synonym" columns can be infinite, so long as they are in the
 order specified.  There can be *no more than two Gene_Chromosome_Location
