@@ -43,7 +43,6 @@ class MainWindow(wx.Frame):
         # The following selections belong to the Gene Query menu:
         menuOpen = querymenu.Append(wx.ID_ANY, "&Load Query List", " Load a gene batch file for query")
         menuPivot = querymenu.Append(wx.ID_ANY, "&Load Report for Pivot", " Load an unpivoted report for file pivot")
-        #menuGit2 = querymenu.Append(wx.ID_ANY, "&Help", " See documentation for help with gene query")
         
         # The following selections belong to the Help menu:
         menuAbout = helpmenu.Append(wx.ID_ABOUT, "&About", " Information about hquery")
@@ -51,6 +50,7 @@ class MainWindow(wx.Frame):
         
         # The following selections belong to the Pharm Data menu:
         menuGetPharm = pharmmenu.Append(wx.ID_ANY, "&Get Pharm Data", " Pull Pharmocologic index data into the specified directory")
+        menuExtractClass = pharmmenu.Append(wx.ID_ANY, "&Extract Substance Classes", " Extract Substance Class data from XML files into .csv")
         menuPharmDiff = pharmmenu.Append(wx.ID_ANY, "&Pharm Diff", " Differentials between old and new index data")
         
         # Place selections into their categories and initialize the menu bar
@@ -66,19 +66,24 @@ class MainWindow(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnPivot, menuPivot)
         self.Bind(wx.EVT_MENU, self.OnAbout, menuAbout)
         self.Bind(wx.EVT_MENU, self.OnGit, menuGit)
-        #self.Bind(wx.EVT_MENU, self.OnGit, menuGit2)
         self.Bind(wx.EVT_MENU, self.OnGetPharm, menuGetPharm)
+        self.Bind(wx.EVT_MENU, self.OnExtractClass, menuExtractClass)
         self.Bind(wx.EVT_MENU, self.OnPharmDiff, menuPharmDiff)
         self.Show(True)
         
     ## Method for loading gene query files
     def OnOpen(self, e):
-        self.dirname = ''
-        dlg = wx.FileDialog(self, "Choose a file", self.dirname, "", "*.*", wx.OPEN)
+        self.queryinfile = ''
+        self.queryoutfile = ''
+        dlg = wx.FileDialog(self, "Choose a file", self.queryinfile, "", "*.*", wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
-            self.filename = dlg.GetFilename()
-            self.dirname = dlg.GetDirectory()
-            #### Put mainQuery interface here ####
+            self.queryinfile = dlg.GetPath()
+            dlg2 = wx.FileDialog(self, "Save as", "", "", "*.*", wx.FD_SAVE)
+            if dlg2.ShowModal() == wx.ID_OK:
+                self.queryoutfile = dlg2.GetPath()
+                mainQuery.mainQuery(self.queryinfile, self.queryoutfile+'.tab.')
+            dlg2.Destroy()
+        dlg.Destroy()
         
     ## Method for link to GitHub repo
     def OnGit(self, e):
@@ -104,27 +109,46 @@ class MainWindow(wx.Frame):
         dlg = wx.DirDialog(self, "Choose a directory", "", wx.DD_DIR_MUST_EXIST)
         if dlg.ShowModal() == wx.ID_OK:
             self.downdir = dlg.GetPath()
+            if os.path.isfile(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip") == True:
+                if os.path.isdir(self.downdir+"\\pharmacologic_class_indexing_spl_files") == True:
+                    return()
+                else:
+                    dlg4 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
+                    if dlg4.ShowModal() == wx.ID_YES:
+                        drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
+                        dlg4.Destroy()
+                        return()
+                    else:
+                        dlg4.Destroy()
+                        return()
+            dlg2 = wx.MessageDialog(self, "Click OK to download data to "+self.downdir+"\\pharmacologic_class_indexing_spl_files.zip"+"\n\nIt may take a few minutes for the file to appear", "Download In Progress", wx.OK | wx.CANCEL)
+            if dlg2.ShowModal() == wx.ID_OK:
+                drugPharmAssoc.getPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
+            dlg2.Destroy()
+        
+            dlg3 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
+            if os.path.isfile(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip") == True:
+                if dlg3.ShowModal() == wx.ID_YES:
+                    drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
+            dlg3.Destroy()
         dlg.Destroy()
         
-        if os.path.isfile(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip") == True:
-            if os.path.isdir(self.downdir+"\\pharmacologic_class_indexing_spl_files") == True:
-                return()
-            else:
-                dlg4 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
-                if dlg4.ShowModal() == wx.ID_YES:
-                    drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
-                    return()
-        dlg2 = wx.MessageDialog(self, "Click OK to download data to "+self.downdir+"\\pharmacologic_class_indexing_spl_files.zip"+"\n\nIt may take a few minutes for the file to appear", "Download In Progress", wx.OK | wx.CANCEL)
-        if dlg2.ShowModal() == wx.ID_OK:
-            drugPharmAssoc.getPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
-        dlg2.Destroy()
-        
-        dlg3 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
-        if os.path.isfile(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip") == True:
-            if dlg3.ShowModal() == wx.ID_YES:
-                drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
-        dlg3.Destroy()
-        dlg4.Destroy()
+    def OnExtractClass(self, e):
+        self.outfilename = ''
+        self.indirname = ''
+        dlg = wx.DirDialog(self, "Choose the XML file Directory", "", wx.DD_DIR_MUST_EXIST)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.indirname = dlg.GetPath()
+            dlg2 = wx.FileDialog(self, "Save as", self.indirname, "", "*.*", wx.FD_SAVE)
+            if dlg2.ShowModal() == wx.ID_OK:
+                self.outfilename = dlg2.GetPath()
+                xmlpath = self.indirname.replace('\\', '/')+'/*'
+                drugPharmAssoc.writeToCSV(xmlpath, self.outfilename+'.csv')
+                dlg3 = wx.MessageDialog(self, "Extraction Complete.", "Extract Substance Data", wx.OK)
+                dlg2.Destroy()
+                if dlg3.ShowModal() == wx.ID_OK and os.path.isfile(self.outfilename+'.csv'):
+                    dlg3.Destroy()
+        dlg.Destroy()
 
     ## Method for selecting two files and comparing them for differential
     ## entries.  The method used is the equivalent of symmetric difference
@@ -140,6 +164,7 @@ class MainWindow(wx.Frame):
                 dlg2 = wx.MessageDialog(self, "Proceed with file differentiation?\n\nFiles will be written to:\n"+str(self.dirname)+r"\pharmDiffResults.csv", "Pharm Differential Analysis", wx.YES_NO)
                 if dlg2.ShowModal() == wx.ID_YES:
                     drugPharmAssoc.pharmDiff(self.filelist[0], self.filelist[1], str(self.dirname)+r"\pharmDiffResults.csv")
+                dlg2.Destroy()
         dlg.Destroy()
         
 ### Main ###

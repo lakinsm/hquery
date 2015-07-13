@@ -56,7 +56,7 @@ def extractPharmData(filePath):
 ## the directory path of the xml files and the desired output path for the csv.
 def writeToCSV(files, outfilePath):
     with open(outfilePath, 'wb') as outfile:
-        fieldnames = ['Drug Name', 'Pharm Class', 'Version']
+        fieldnames = ['Substance Name', 'Pharm Class', 'Version']
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
         writer.writeheader()
         
