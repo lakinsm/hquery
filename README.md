@@ -21,7 +21,7 @@ will need the following to be installed on your machine:
   * [openpyxl Python package](https://openpyxl.readthedocs.org/en/latest/#Installation)
 - [R Language for Statistical Computing (pivot feature only)](http://cran.r-project.org/mirrors.html)
 - The R packages (pivot feature only [Lyuba will need this for the pivot]):
--- xlsx
+  * xlsx
   * dplyr
   * tidyr
   * openxlsx
