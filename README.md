@@ -25,6 +25,7 @@ will need the following to be installed on your machine:
   * dplyr
   * tidyr
   * openxlsx
+  * splitstackshape
 - (Optional) [Cygwin](http://cygwin.com/install.html)
 
 Which can be obtained using the following line of code in the R terminal:
