@@ -21,16 +21,33 @@ import os
 import os.path
 import wx
 import webbrowser
+import sys
 from bin import drugPharmAssoc
 from bin import mainQuery
-from bin import xlsxparse
+
+class RedirectText(object):
+    def __init__(self,aWxTextCtrl):
+        self.out=aWxTextCtrl
+    
+    def write(self,string):
+        self.out.WriteText(string)
 
 ### main GUI app class
 class MainWindow(wx.Frame):
 
     ## Initialize the main frame
     def __init__(self, parent, title):
-        wx.Frame.__init__(self, parent, title=title, size=(-1,-1))
+        wx.Frame.__init__(self, parent, title=title, size=(600,400))
+        
+        panel = wx.Panel(self, wx.ID_ANY)
+        log = wx.TextCtrl(panel, wx.ID_ANY, size=(600,400), style = wx.TE_MULTILINE|wx.TE_READONLY|wx.HSCROLL)
+        
+        sizer = wx.BoxSizer(wx.VERTICAL)
+        sizer.Add(log, 1, wx.ALL|wx.EXPAND, 5)
+        panel.SetSizer(sizer)
+        
+        redir = RedirectText(log)
+        sys.stdout = redir
         
         # Add status bar and menus
         self.CreateStatusBar()
@@ -101,6 +118,7 @@ class MainWindow(wx.Frame):
             self.pivotfilename = dlg.GetFilename()
             self.pivotdirname = dlg.GetDirectory()
             #### Put xlsxparse interface for pivot here ####
+            
         
     ## Method for downloading new pharmocologic index spl data from the NLM
     ## ftp server.  Includes an optional call to Cygwin to extract the data.
@@ -113,24 +131,36 @@ class MainWindow(wx.Frame):
                 if os.path.isdir(self.downdir+"\\pharmacologic_class_indexing_spl_files") == True:
                     return()
                 else:
-                    dlg4 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
-                    if dlg4.ShowModal() == wx.ID_YES:
-                        drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
-                        dlg4.Destroy()
-                        return()
+                    if os.path.isdir(r"c:\cygwin64") == True or os.path.isdir(r"C:\cygwin") == True:
+                        dlg4 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
+                        if dlg4.ShowModal() == wx.ID_YES:
+                            drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
+                            dlg4.Destroy()
+                            return()
+                        else:
+                            dlg4.Destroy()
+                            return()
                     else:
+                        dlg4 = wx.MessageDialog(self, "Download Complete", "Download Status", wx.OK)
+                        dlg4.ShowModal()
                         dlg4.Destroy()
                         return()
             dlg2 = wx.MessageDialog(self, "Click OK to download data to "+self.downdir+"\\pharmacologic_class_indexing_spl_files.zip"+"\n\nIt may take a few minutes for the file to appear", "Download In Progress", wx.OK | wx.CANCEL)
             if dlg2.ShowModal() == wx.ID_OK:
                 drugPharmAssoc.getPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
             dlg2.Destroy()
-        
-            dlg3 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
-            if os.path.isfile(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip") == True:
-                if dlg3.ShowModal() == wx.ID_YES:
-                    drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
-            dlg3.Destroy()
+            
+            if os.path.isdir(r"c:\cygwin64") == True or os.path.isdir(r"C:\cygwin") == True:
+                dlg3 = wx.MessageDialog(self, "Download Complete\n\nWould you like to extract the files using cygwin? (Windows only)", "Download Status", wx.YES_NO)
+                if os.path.isfile(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip") == True:
+                    if dlg3.ShowModal() == wx.ID_YES:
+                        drugPharmAssoc.extractPharmData(self.downdir+"\\pharmacologic_class_indexing_spl_files.zip")
+                dlg3.Destroy()
+            else:
+                dlg3 = wx.MessageDialog(self, "Download Complete", "Download Status", wx.OK)
+                dlg3.ShowModal()
+                dlg3.Destroy()
+             
         dlg.Destroy()
         
     def OnExtractClass(self, e):
@@ -169,6 +199,7 @@ class MainWindow(wx.Frame):
         
 ### Main ###
 #app = wx.App(True, filename=r'C:\Users\lakinsm\Documents\PosterNIH\Term\HUGOQueryModule\errorlog.txt')
-app = wx.App(False)
-frame = MainWindow(None, 'BTRIS Extension for HGNC and NLM Data v0.1.1')
-app.MainLoop()
+if __name__ == "__main__":
+    app = wx.App(False)
+    frame = MainWindow(None, 'BTRIS Extension for HGNC and NLM Data v0.1.1')
+    app.MainLoop()

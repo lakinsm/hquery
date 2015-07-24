@@ -16,6 +16,7 @@
 #-------------------------------------------------------------------------------
 
 import codecs
+import os
 
 try:
     import requests
@@ -35,7 +36,9 @@ def mainQuery(inputReport, outputPath):
     wb = load_workbook(inputReport, read_only = True)
     ws = wb[wb.get_sheet_names()[0]] # The input data must be in the first sheet
     
-    with codecs.open(outputPath, 'w', encoding='utf-8') as outfile, open(dirPath+'FailedQueryLog.txt', 'w') as errorfile:
+    progressMax = len([1 for row in ws.rows])-1
+    
+    with codecs.open(outputPath, 'w', encoding='utf-8') as outfile, open(dirPath+'FailedQueryLog.tab', 'w') as errorfile:
         # Initialize static headers for outfile
         outfile.write(
         'Concept_Name\tConcept_ID\tGene_Nomenclature_Symbol\tGene_Chromosome_Location#1\tGene_Chromosome_Location#2\t'
@@ -49,17 +52,29 @@ def mainQuery(inputReport, outputPath):
             outfile.write('Full_Synonym#'+str(x+1)+'\t')
         outfile.write('\n')
         
-        # Iterate over the input report, skipping the header line, put values
-        # from the report into the output array if known, append variable length
+        # Initialize headers for errorfile:
+        errorfile.write('Concept_Name\tError_Field\tError_Text\n')
+        
+        # Iterate over the input report, validate headers, put values
+        # from the report into the output array if known, append dynamic
         # fields (e.g. synonym fields)
         count = 0
         for row in ws.rows:
-            # Initialize temporary output array to store output values for each row in report
+            
+            # Initialize temporary output list to store output values for each row in report
+            # This ensures there is white space for empty fields
             iterList = ['' for x in range(18)]
+            
+            # Validate headers from the input file
             if count == 0:
-                count += 1
-                continue
+                try:
+                    validateHeader(row)
+                    count += 1
+                    continue
+                except ValueError:
+                    raise
             else:
+                print('\nGene '+str(count)+' of '+str(progressMax)+'...')
                 iterList[0] = row[0].value #Concept name
                 iterList[1] = row[1].value #Concept ID
                 iterList[2] = row[2].value #Gene nomenclature symbol
@@ -79,15 +94,17 @@ def mainQuery(inputReport, outputPath):
                     if len(row[7].value) < 12 and row[7].value not in nulls:
                         symbol = row[7].value #Use second synonym from RED
                     else:
-                        errorfile.write(row[0].value+' has no valid symbol.\n')
+                        errorfile.write(row[0].value+'\t'+row[2].value+'\t'+' has no valid symbol.\n')
                         continue
                 else:
                     symbol = row[6].value #Use first synonym from RED
             else:
                 symbol = row[2].value #Use the main symbol from RED
             try:
-                data, symbol = validateResponse(queryFetch('http://rest.genenames.org/fetch/symbol/', symbol), errorfile)
-            except Exception:
+                data, symbol = validateResponse(row[0].value, queryFetch('http://rest.genenames.org/fetch/symbol/', symbol), errorfile)
+                count +=1
+            except Exception: #The specific errors are handled by validateResponse
+                count +=1
                 continue
                     
             # Place retrieved data into iterList
@@ -130,57 +147,55 @@ def queryFetch(prefix, symbol):
     
 # Check error status and if error, output to errorfile.  If valid
 # reponse, retrieve the data as a nested dictionary.            
-def validateResponse(responseObj, errorfile):
+def validateResponse(conceptName, responseObj, errorfile):
     if responseObj.status_code != 200:
-        errorfile.write(responseObj.url.split('/')[-1]+' symbol returned error code: '+responseObj.status_code+', reason = '+responseObj.reason+'\n')
+        errorfile.write(conceptName+'\t'+responseObj.url.split('/')[-1]+'\t'+' symbol returned error code: '+responseObj.status_code+', reason = '+responseObj.reason+'\n')
         print('error main')
     elif responseObj.status_code == 200:
         if responseObj.json()['response']['numFound'] == 0:
             symbol = responseObj.url.split('/')[-1]
-            print('1 '+symbol)
+            print('Invalid Symbol '+symbol+', searching for alias...')
             alias = queryFetch('http://rest.genenames.org/fetch/alias_symbol/', symbol)
             if alias.status_code !=200:
-                errorfile.write(alias.url.split('/')[-1]+' symbol returned error code: '+alias.status_code+', reason = '+alias.reason+'\n')
+                errorfile.write(conceptName+'\t'+alias.url.split('/')[-1]+'\t'+' symbol returned error code: '+alias.status_code+', reason = '+alias.reason+'\n')
                 print('error alias')
             elif alias.json()['response']['numFound'] == 0:
                 symbol = alias.url.split('/')[-1]
-                print('2 '+symbol)
-                errorfile.write(responseObj.url.split('/')[-1]+' symbol returned no records\n')
+                print('Alias Symbol: '+symbol+' not found')
+                errorfile.write(conceptName+'\t'+responseObj.url.split('/')[-1]+'\t'+' symbol returned no records\n')
             else:
                 symbol = alias.json()['response']['docs'][0]['symbol']
-                print('3 '+symbol)
+                print('Alias Symbol: '+symbol+' found')
                 data = queryFetch('http://rest.genenames.org/fetch/symbol/', symbol)
                 return(data, symbol)
         else:
             symbol = responseObj.json()['response']['docs'][0]['symbol']
-            print('4 '+symbol)
+            print('Valid Symbol: '+symbol)
             return(responseObj, symbol)
 
-## Track query progress via a wx progress dialog
-def progressDialog(List, Dir):
+def validateHeader(row):
+    if "Concept" and "Name" not in row[0].value:
+        raise ValueError(row[0].value+' is an incorrect header.  "Concept" and "Name" must be present in this header')
+    if "Concept" and "Code" not in row[1].value:
+        raise ValueError(row[1].value+' is an incorrect header.  "Concept" and "Code" must be present in this header')
+    if "Gene" and "Nomenclature" and "Symbol" not in row[2].value:
+        raise ValueError(row[2].value+' is an incorrect header.  "Gene", "Nomenclature", and "Symbol" must be present in this header')
+    if "Gene" and "Chromosome" and "Location" not in row[3].value:
+        raise ValueError(row[3].value+' is an incorrect header.  "Gene", "Chromosome", and "Location" must be present in this header')
+    if "Gene" and "Chromosome" and "Location" not in row[4].value:
+        raise ValueError(row[4].value+' is an incorrect header.  "Gene", "Chromosome", and "Location" must be present in this header')
+    if "Gene" and "Map" and "Location" not in row[5].value:
+        raise ValueError(row[5].value+' is an incorrect header.  "Gene", "Map", and "Location" must be present in this header')
+    for cell in row[6:len(row)]:
+        if "Synonym" not in cell.value:
+            raise ValueError(cell+' is an incorrect header.  "Synonym" must be present in this header')
 
-    # Set variables for wx.ProgressDialog
-    frame.count = 0
-    frame.progressMax = len(List)
-    frame.keepGoing = True
-    frame.skip = False
-    
-    # Initialize wx.ProgressDialog
-    frame.dialog = wx.ProgressDialog("Query Status", "Query completion:", frame.progressMax, style=wx.PD_APP_MODAL | wx.PD_CAN_ABORT | wx.PD_ELAPSED_TIME)
-    
-    # Loop over the gene list, check for errors in gene symbol, and query
-    # each gene against the HUGO database.  Return json object and parse it
-    # with dumpclean().  Update the progress bar.
-    with open(Dir+"\GeneQueryResults.txt", 'w') as f:
-        with open(Dir+"\RejectedQueryReport.txt", 'w') as g:
-            for gene in List:
-                r = requests.get(prefix+gene, headers=headers)
-                if r.status_code == 200:
-                    dumpClean(obj=r.json()['response']['docs'][0], outfile=f)
-                    f.write("\n\n")
-                else:
-                    g.write("Error code: "+str(r.status_code)+" for gene: "+gene+"\n")
-                frame.count += 1
-                (frame.keepGoing, frame.skip) = frame.dialog.Update(frame.count, str(frame.count)+" of "+str(frame.progressMax))
-    frame.dialog.Destroy()
+def expandReport(infile):
+    path = '/'.join(infile.split('\\')[0:-1])
+    inpath = infile.replace('\\', '/')
+    os.system(r'Rscript scripts/expandReport.R '+inpath+' '+path+'/expandedQueryReport.tab')
 
+def pivotReport(infile):
+    path = '/'.join(infile.split('\\')[0:-1])
+    inpath = infile.replace('\\', '/')
+    os.system(r'Rscript scripts/pivotReport.R '+inpath+' '+path+'/pivotedReport.xlsx')

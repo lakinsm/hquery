@@ -16,21 +16,38 @@ will want to use the hquery.pyw to suppress the python console.  To start up
 the program, ensure that you have the necessary dependencies installed.  You 
 will need the following to be installed on your machine:
 
-- [Python 3.x.x](https://www.python.org/downloads/)
-  * [Requests Python package](http://docs.python-requests.org/en/latest/user/install/#install)
-  * [openpyxl Python package](https://openpyxl.readthedocs.org/en/latest/#Installation)
-- [R Language for Statistical Computing (pivot feature only)](http://cran.r-project.org/mirrors.html)
-- The R packages (pivot feature only [Lyuba will need this for the pivot]):
-  * xlsx
-  * dplyr
-  * tidyr
-  * openxlsx
-  * splitstackshape
+Required packages/software:
+- [Python 2.7.x](https://www.python.org/downloads/)
+  * [Requests Python package (can be pip installed)](http://docs.python-requests.org/en/latest/user/install/#install)
+  * [openpyxl Python package (can be pip installed)](https://openpyxl.readthedocs.org/en/latest/#Installation)
+- [R Language for Statistical Computing](https://www.r-project.org/)
+  * splitstackshape package for R
+  * dplyr package for R
+  * stringr package for R
+  * openxlsx package for R
+  * xlsx package for R
 - (Optional) [Cygwin](http://cygwin.com/install.html)
 
-Which can be obtained using the following line of code in the R terminal:
+**Note: You must install the same architecture of R as your Java JRE/JDK**
+64-bit R must be used with 64-bit JDK/JRE, and 32-bit with 32-bit
 
-install.packages(c('xlsx', 'dplyr', 'tidyr', 'openxlsx'))
+**Note: the Rscript executable MUST be added to your Path variable**
+This is normally found in:
+C:\Program Files\R\R-version#\bin for 64-bit
+C:\Program Files (x86)\R\R-version#\bin for 32-bit
+
+#### Step by Step Instructions for Installation
+
+1. Download and install the newest version of [Python 2.7.x](https://www.python.org/downloads/)
+2. Download and install the newest version of [R Language for Statistical Computing](https://www.r-project.org/)
+3. Open the window's command prompt
+4. Type the following commands, then close the terminal:
+  * C:\Python27\python.exe -m pip install requests
+  * C:\Python27\python.exe -m pip install openpyxl
+5. From the program file menu, open the R executable
+6. Type the following command, then close the R terminal:
+  * install.packages(c('splitstackshape', 'dplyr', 'stringr', 'openxlsx', 'xlsx'))
+7. (Optional) Download and install Cygwin (for Dani only), be sure to install the "wget" and "unzip" utilities
 
 Double click on hquery.pyw to open the program.  
 
@@ -145,4 +162,4 @@ whose name you specified in the same directory as the compared files.
 
 For questions or update requests, please contact me at the email listed above.
 
-This documentation was last updated on July 13th, 2015
+This documentation was last updated on July 24th, 2015
