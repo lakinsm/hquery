@@ -41,7 +41,8 @@ def mainQuery(inputReport, outputPath):
         outputPath = outputPath+timestamp+'.tab'
     
     # Get Excel workbook data location on memory (this does not immediately utilize resources)
-    wb = load_workbook(inputReport, read_only = True)
+    wb = load_workbook(inputReport)
+    #wb = load_workbook(inputReport, read_only = True) # memory efficient version, uncomment to use, see documentation for details
     ws = wb[wb.get_sheet_names()[0]] # The input data must be in the first sheet
     
     progressMax = len([1 for row in ws.rows])-1
@@ -187,6 +188,7 @@ def validateResponse(conceptName, responseObj, errorfile):
 
 ## Verify that headers in the input excel report are appropriate for mainQuery
 def validateHeader(row):
+    print([x.value for x in row])
     if "Concept" and "Name" not in row[0].value:
         print('An error has occurred:\n\n')
         raise ValueError(row[0].value+' is an incorrect header.  "Concept" and "Name" must be present in this header')

@@ -29,5 +29,6 @@ colOrder <- c('Concept_Name', 'Concept_Code', 'Gene_Nomenclature_Symbol', locati
 
 pivot2 <- as.data.frame(pivot2[,colOrder])
 
-xlsx::write.xlsx(pivot2, args[2], row.names=FALSE, showNA=FALSE)
+#openxlsx::write.xlsx(pivot2, args[2], asTable=F, row.names=FALSE, keepNA=FALSE)
 
+xlsx::write.xlsx(pivot2, args[2], row.names=FALSE, showNA=FALSE)

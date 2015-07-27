@@ -55,6 +55,22 @@ Double click on hquery.pyw to open the program.
 
 ### Usage and Input Formats
 
+#### Example File and Templates
+
+In the ExampleFiles folder, I have provided templates for each of the gene
+query steps:
+
+  * Template_Unpivoted_Report_From_RED.xlsx
+    * This file is the raw input for the Pivot Report feature
+  * Template_Pivoted_Report_Ready_For_Query.xlsx
+    * This file is the pivoted report that is the input for the Load Query File
+  * Example_Output_From_Query.tab
+    * This file is the expected raw output from the HGNC query
+  * Example_Expanded_Output_From_Query.tab
+    * This file is the expanded, final version of the output from the HGNC query
+  * Example_Failed_Query_Log.tab
+    * This is an example of the error file for queries that returned no data
+
 #### Pivoting RED Reports
 
 Menu location:
