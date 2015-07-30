@@ -188,7 +188,6 @@ def validateResponse(conceptName, responseObj, errorfile):
 
 ## Verify that headers in the input excel report are appropriate for mainQuery
 def validateHeader(row):
-    print([x.value for x in row])
     if "Concept" and "Name" not in row[0].value:
         print('An error has occurred:\n\n')
         raise ValueError(row[0].value+' is an incorrect header.  "Concept" and "Name" must be present in this header')
